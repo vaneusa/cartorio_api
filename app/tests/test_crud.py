@@ -3,19 +3,31 @@ import shutil
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.routes.documents import UPLOAD_DIR  # CORRETO
+from app.routes.documents import UPLOAD_DIR
 
 client = TestClient(app)
-DOCUMENTS_DIR = UPLOAD_DIR  # Definido localmente
+DOCUMENTS_DIR = UPLOAD_DIR
 
-# 🔹 Limpa o diretório antes e depois de cada teste
 @pytest.fixture(autouse=True)
 def cleanup_docs():
     if os.path.exists(DOCUMENTS_DIR):
-        shutil.rmtree(DOCUMENTS_DIR)
-    os.makedirs(DOCUMENTS_DIR, exist_ok=True)
+        # Remove apenas os arquivos dentro do diretório
+        for filename in os.listdir(DOCUMENTS_DIR):
+            file_path = os.path.join(DOCUMENTS_DIR, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+    else:
+        os.makedirs(DOCUMENTS_DIR, exist_ok=True)
     yield
-    shutil.rmtree(DOCUMENTS_DIR)
+    # Faz a mesma limpeza após o teste
+    for filename in os.listdir(DOCUMENTS_DIR):
+        file_path = os.path.join(DOCUMENTS_DIR, filename)
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
 
 
 def test_create_document():
