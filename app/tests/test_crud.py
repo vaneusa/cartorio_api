@@ -64,17 +64,24 @@ def test_read_document_not_found():
 
 
 def test_update_document_success():
+    # Cria documento inicial
     create_resp = client.post(
         "/documents/",
         files={"file": ("old.pdf", b"old content", "application/pdf")}
     )
     doc_id = create_resp.json()["id"]
+    old_file_type = create_resp.json()["file_type"]  # pega o file_type atual
 
-    response = client.put(f"/documents/{doc_id}", json={"filename": "new.pdf"})
+    # Atualiza apenas o nome do arquivo, mantendo file_type
+    response = client.put(f"/documents/{doc_id}", json={
+        "filename": "new.pdf",
+        "file_type": old_file_type  # garante que não vai ser NULL
+    })
+
     assert response.status_code == 200
     data = response.json()
     assert data["filename"] == "new.pdf"
-
+    assert data["file_type"] == old_file_type
 
 def test_update_document_not_found():
     response = client.put("/documents/999", json={"filename": "ghost.pdf"})
